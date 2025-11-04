@@ -1,0 +1,18 @@
+# Core
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database clients
+pinecone-client==3.0.0
+
+# Data fetching
+arxiv==2.1.0
+
+# AI/ML
+openai==1.6.1
+
+# Utilities
+tqdm==4.66.1
+tenacity==8.2.3
+loguru==0.7.2
