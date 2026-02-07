@@ -4,3 +4,4 @@ Tracking incremental improvements and fixes.
 
 - [2026-02-02] refactor: extract context builder into separate method
 - [2026-02-02] fix: skip graph enrichment when Neo4j times out
+- [2026-02-07] chore: normalize newlines in frontend api module
