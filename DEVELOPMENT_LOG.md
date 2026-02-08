@@ -6,3 +6,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-02] fix: skip graph enrichment when Neo4j times out
 - [2026-02-07] chore: normalize newlines in frontend api module
 - [2026-02-08] refactor: extract rewrite prompt constants to top
+- [2026-02-08] fix: cap connected paper results to avoid memory spike
