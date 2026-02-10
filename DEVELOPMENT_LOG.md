@@ -10,3 +10,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-08] chore: align indentation in search pipeline
 - [2026-02-10] fix: guard against None abstract in paper context
 - [2026-02-10] refactor: extract query validation into helper
+- [2026-02-10] chore: remove stale TODO comment
