@@ -12,3 +12,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-10] refactor: extract query validation into helper
 - [2026-02-10] chore: remove stale TODO comment
 - [2026-02-11] fix: default category filter to None not empty list
+- [2026-02-11] perf: cache Neo4j client connection across requests
