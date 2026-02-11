@@ -153,7 +153,7 @@ class HybridRAG:
     def _build_basic_context(self, papers: List[PaperResult]) -> str:
         """Build context using actual matched chunk text, not just abstracts."""
         parts = []
-        for i, paper in enumerate(papers[:5], 1):
+        for i, paper in enumerate(papers[:5], start=1):
             entry = (
                 f"[{i}] {paper.title} ({paper.year})\n"
                 f"    Authors: {paper.authors[:100]}"
