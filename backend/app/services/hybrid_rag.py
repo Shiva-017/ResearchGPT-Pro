@@ -138,7 +138,7 @@ class HybridRAG:
 
         total_graph_ms = sum(timings.values())
         timings["graph_total_ms"] = total_graph_ms
-        logger.info(f"Graph enrichment: {total_graph_ms:.0f}ms")
+        logger.info(f"Graph enrichment complete: {total_graph_ms:.0f}ms")
 
         return {
             "context_str": context_str,
