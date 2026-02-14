@@ -16,3 +16,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-11] fix: add fallback for missing chunk_snippet field
 - [2026-02-14] docs: add note about BM25 sparse vector behaviour
 - [2026-02-14] chore: add blank line between logical blocks
+- [2026-02-14] docs: add inline comments to hybrid search stages
