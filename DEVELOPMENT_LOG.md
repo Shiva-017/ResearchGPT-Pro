@@ -20,3 +20,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-16] refactor: rename internal var for clarity in reranker
 - [2026-02-17] fix: skip expansion for papers already fully chunked
 - [2026-02-17] chore: minor formatting in rate limiter module
+- [2026-02-17] chore: normalize log message formatting
