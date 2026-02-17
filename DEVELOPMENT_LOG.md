@@ -18,3 +18,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-14] chore: add blank line between logical blocks
 - [2026-02-14] docs: add inline comments to hybrid search stages
 - [2026-02-16] refactor: rename internal var for clarity in reranker
+- [2026-02-17] fix: skip expansion for papers already fully chunked
