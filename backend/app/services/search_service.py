@@ -262,7 +262,7 @@ class SearchService:
                     {"role": "user", "content": _HYDE_USER.format(query=query)},
                 ],
                 max_tokens=200,  # short abstract only
-                temperature=0.7,
+                temperature=0.7,  # slight variation for diversity
             )
             abstract = response.choices[0].message.content.strip()
             logger.debug(f"HyDE abstract: {abstract[:100]}…")
