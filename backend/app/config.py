@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     pinecone_api_key: str
     pinecone_environment: str = "us-east-1-aws"
     pinecone_index_name: str = "research-papers"
+
+    # Neo4j
+    neo4j_uri: str = ""
+    neo4j_username: str = "neo4j"
+    neo4j_password: str = ""
     
     # Application
     log_level: str = "INFO"

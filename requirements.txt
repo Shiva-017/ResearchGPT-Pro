@@ -1,18 +1,34 @@
+# ResearchGPT Pro — Python dependencies
+# Install: pip install -r requirements.txt
+
 # Core
-python-dotenv==1.0.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Web framework
+fastapi>=0.109.0
+uvicorn>=0.27.0
 
 # Database clients
-pinecone-client==3.0.0
+pinecone-client>=3.0.0
+pinecone-text>=0.9.0           # BM25 sparse encoder for hybrid search
+neo4j>=5.15.0                  # Graph database
 
 # Data fetching
-arxiv==2.1.0
+arxiv>=2.1.0
+httpx>=0.26.0                  # Semantic Scholar API
 
 # AI/ML
-openai==1.6.1
+openai>=1.6.1
+sentence-transformers>=2.3.1   # Cross-encoder reranker
+numpy>=1.24.0                  # Vector math for research paths
+
+# Agent orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
 
 # Utilities
-tqdm==4.66.1
-tenacity==8.2.3
-loguru==0.7.2
+tqdm>=4.66.1
+tenacity>=8.2.3
+loguru>=0.7.2

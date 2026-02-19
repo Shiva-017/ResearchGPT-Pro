@@ -1,14 +1,20 @@
-# Environment
-.env
-venv/
+# Python
 __pycache__/
-*.pyc
-.pytest_cache/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
 
-# Data
-backend/data/raw/*
-backend/data/checkpoints/*
-backend/data/logs/*
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
 
 # IDE
 .vscode/
@@ -19,3 +25,23 @@ backend/data/logs/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Data (large files — don't commit)
+backend/data/raw/*.json
+backend/data/processed/
+backend/data/checkpoints/
+backend/data/logs/
+!backend/data/raw/.gitkeep
+!backend/data/processed/.gitkeep
+!backend/data/checkpoints/.gitkeep
+!backend/data/logs/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Misc
+*.log
+.env.local
+.env.*.local
