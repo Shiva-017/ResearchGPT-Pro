@@ -89,23 +89,20 @@ _REWRITE_USER = (
 )
 
 
-# ── Cross-Encoder (lazy loaded) ──────────────────────────────────────
+# ── Cohere Reranker (API-based, no local model needed) ───────────────
 
-_reranker = None
+import cohere
+
+_cohere_client = None
 
 
-def _get_reranker():
-    """
-    Lazy-load the cross-encoder so import time is zero
-    and it only downloads once.
-    """
-    global _reranker
-    if _reranker is None:
-        logger.info("Loading cross-encoder model (first time only)…")
-        from sentence_transformers import CrossEncoder
-        _reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-        logger.info("Cross-encoder loaded.")
-    return _reranker
+def _get_cohere_client():
+    """Lazy-init Cohere client."""
+    global _cohere_client
+    if _cohere_client is None:
+        _cohere_client = cohere.ClientV2(api_key=settings.cohere_api_key)
+        logger.info("Cohere rerank client initialized.")
+    return _cohere_client
 
 
 # ── Search Service ───────────────────────────────────────────────────
@@ -349,38 +346,46 @@ class SearchService:
 
     def _rerank(self, query: str, matches: list) -> list:
         """
-        Re-score Pinecone results using a cross-encoder.
+        Re-score Pinecone results using Cohere Rerank API.
 
-        The cross-encoder reads (query, chunk_text) together and gives
-        a much more accurate relevance score than vector similarity.
+        Cohere reads (query, document) pairs and returns precise
+        relevance scores — same idea as a cross-encoder but hosted,
+        so zero RAM / no PyTorch needed locally.
+
+        Free tier: 1,000 rerank calls/month.
         """
-        reranker = _get_reranker()
+        co = _get_cohere_client()
 
-        # Build pairs: [query, document_text] for each match
-        pairs = []
+        # Build document texts for Cohere
+        docs = []
         for match in matches:
             meta = match.metadata if hasattr(match, "metadata") else {}
-            # Reconstruct a readable text from metadata for the cross-encoder
             doc_text = (
                 f"{meta.get('title', '')}. "
                 f"{meta.get('abstract', '')}"
             )
-            pairs.append([query, doc_text])
+            docs.append(doc_text)
 
-        # Score all pairs
-        scores = reranker.predict(pairs)
+        try:
+            response = co.rerank(
+                model="rerank-v3.5",
+                query=query,
+                documents=docs,
+                top_n=len(docs),
+            )
 
-        # Attach rerank scores and sort
-        scored = list(zip(matches, scores))
-        scored.sort(key=lambda x: float(x[1]), reverse=True)
+            # Map Cohere results back to matches with scores
+            reranked = []
+            for result in response.results:
+                match = matches[result.index]
+                match._rerank_score = float(result.relevance_score)
+                reranked.append(match)
 
-        # Attach score to metadata for downstream use
-        reranked = []
-        for match, score in scored:
-            match._rerank_score = float(score)
-            reranked.append(match)
+            return reranked
 
-        return reranked
+        except Exception as e:
+            logger.warning(f"Cohere rerank failed: {e} — using Pinecone scores")
+            return matches
 
     # ------------------------------------------------------------------
     # Stage 5: Group chunks → papers

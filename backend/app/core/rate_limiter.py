@@ -91,7 +91,7 @@ def check_api_key(request: Request):
         return  # open access
 
     key = request.headers.get("X-API-Key") or request.query_params.get("api_key")
-    if key not in settings.valid_api_keys:
+    if key not in settings.api_keys_set:
         raise HTTPException(
             status_code=401,
             detail="Invalid or missing API key. Include X-API-Key header."

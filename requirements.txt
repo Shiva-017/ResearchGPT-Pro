@@ -21,7 +21,7 @@ httpx>=0.26.0                  # Semantic Scholar API
 
 # AI/ML
 openai>=1.6.1
-sentence-transformers>=2.3.1   # Cross-encoder reranker
+cohere>=5.0.0                  # Reranker API (replaces local cross-encoder)
 numpy>=1.24.0                  # Vector math for research paths
 
 # Agent orchestration
