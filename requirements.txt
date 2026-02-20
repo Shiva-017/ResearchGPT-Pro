@@ -11,7 +11,7 @@ fastapi>=0.109.0
 uvicorn>=0.27.0
 
 # Database clients
-pinecone-client>=3.0.0
+pinecone>=5.0.0
 pinecone-text>=0.9.0           # BM25 sparse encoder for hybrid search
 neo4j>=5.15.0                  # Graph database
 
