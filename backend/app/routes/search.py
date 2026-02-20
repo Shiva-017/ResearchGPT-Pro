@@ -5,7 +5,7 @@ Search + Chat + Research Path API endpoints.
 """
 
 import json
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
@@ -13,6 +13,7 @@ from backend.app.models.search import SearchRequest, SearchResponse, ChatRequest
 from backend.app.services.search_service import SearchService
 from backend.app.services.agent_router import AgentRouter
 from backend.app.services.research_path import ResearchPathFinder
+from backend.app.core.rate_limiter import enforce_limits
 
 router = APIRouter(prefix="/api/v1", tags=["search"])
 
@@ -44,18 +45,21 @@ def _get_path_finder() -> ResearchPathFinder:
 
 
 @router.post("/search", response_model=SearchResponse)
-def search_papers(request: SearchRequest):
+def search_papers(request: SearchRequest, req: Request = None):
     """Search for research papers (non-streaming, full response)."""
+    enforce_limits(req)
     try:
         service = _get_service()
         return service.search(request)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/chat")
-def chat_stream(request: ChatRequest):
+def chat_stream(request: ChatRequest, req: Request = None):
     """
     Chat endpoint with intelligent routing + streaming answer.
 
@@ -74,6 +78,7 @@ def chat_stream(request: ChatRequest):
       2. {"type": "token", ...}    — streamed answer tokens
       3. {"type": "done"}
     """
+    enforce_limits(req)
     try:
         agent = _get_router()
 
@@ -111,6 +116,8 @@ def chat_stream(request: ChatRequest):
             },
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Chat failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -121,8 +128,10 @@ def find_research_path(
     start_topic: str,
     end_topic: str,
     num_steps: int = 4,
+    req: Request = None,
 ):
     """Find the optimal learning path between two research topics."""
+    enforce_limits(req)
     try:
         finder = _get_path_finder()
         return finder.find_path(
