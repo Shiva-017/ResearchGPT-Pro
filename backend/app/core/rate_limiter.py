@@ -21,7 +21,7 @@ from backend.app.config import settings
 _ip_requests: dict[str, list[float]] = defaultdict(list)  # keyed by client IP
 
 # Limits (configurable via env)
-IP_HOURLY_LIMIT = settings.rate_limit_per_ip_hourly    # e.g. 20
+IP_HOURLY_LIMIT = settings.rate_limit_per_ip_hourly    # e.g. 20 req/hour
 IP_DAILY_LIMIT = settings.rate_limit_per_ip_daily      # e.g. 50
 
 
