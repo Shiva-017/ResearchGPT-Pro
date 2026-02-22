@@ -25,3 +25,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-22] refactor: consolidate duplicate Pinecone filter logic
 - [2026-02-22] docs: explain alpha weighting in hybrid search
 - [2026-02-22] docs: add step numbers to chat pipeline comments
+- [2026-02-22] fix: handle empty Pinecone result set gracefully
