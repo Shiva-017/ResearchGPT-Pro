@@ -22,3 +22,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-17] chore: minor formatting in rate limiter module
 - [2026-02-17] chore: normalize log message formatting
 - [2026-02-17] fix: ensure graph_insights always returns dict
+- [2026-02-22] refactor: consolidate duplicate Pinecone filter logic
