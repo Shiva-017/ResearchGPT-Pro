@@ -18,7 +18,7 @@ from backend.app.config import settings
 # --- Layer 1: IP Rate Limiting ---
 
 # {ip: [timestamp, timestamp, ...]}
-_ip_requests: dict[str, list[float]] = defaultdict(list)
+_ip_requests: dict[str, list[float]] = defaultdict(list)  # keyed by client IP
 
 # Limits (configurable via env)
 IP_HOURLY_LIMIT = settings.rate_limit_per_ip_hourly    # e.g. 20
