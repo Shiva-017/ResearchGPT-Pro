@@ -163,7 +163,7 @@ class SearchService:
         t0 = time.time()
         # Fetch more candidates than needed so reranker has room to work
         fetch_k = request.top_k * 4 if request.use_rerank else request.top_k * 2
-        fetch_k = min(fetch_k, 80)  # cap at 80 to keep it fast
+        fetch_k = min(fetch_k, 80)  # cap to control Pinecone latency
 
         pinecone_filter = self._build_filter(request)
 
