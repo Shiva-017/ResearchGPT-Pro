@@ -533,7 +533,7 @@ class SearchService:
 
             expanded.append(paper)
 
-        # Add remaining papers (6+) without expansion
+        # Append remaining papers (beyond top-5) without chunk expansion
         expanded.extend(papers[5:])
         return expanded
 
