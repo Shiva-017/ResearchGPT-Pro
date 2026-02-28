@@ -28,3 +28,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-22] fix: handle empty Pinecone result set gracefully
 - [2026-02-22] fix: handle Neo4j timeout without crashing request
 - [2026-02-27] refactor: replace magic string with named constant
+- [2026-02-28] fix: handle model response with empty choices
