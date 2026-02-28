@@ -31,3 +31,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-28] fix: handle model response with empty choices
 - [2026-02-28] fix: guard max_tokens from zero value
 - [2026-02-28] docs: add example to search service docstring
+- [2026-02-28] refactor: move magic number to named constant
