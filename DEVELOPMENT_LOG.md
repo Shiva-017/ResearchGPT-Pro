@@ -32,3 +32,4 @@ Tracking incremental improvements and fixes.
 - [2026-02-28] fix: guard max_tokens from zero value
 - [2026-02-28] docs: add example to search service docstring
 - [2026-02-28] refactor: move magic number to named constant
+- [2026-03-01] perf: short-circuit graph enrich when paper list empty
