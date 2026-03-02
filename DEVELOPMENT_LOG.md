@@ -35,3 +35,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-01] perf: short-circuit graph enrich when paper list empty
 - [2026-03-02] docs: clarify chunk expansion slot calculation
 - [2026-03-02] fix: handle missing pdf_url without raising
+- [2026-03-02] chore: clean up trailing whitespace in models
