@@ -55,8 +55,15 @@ mkdir -p backend/data/{raw,pdfs,processed,checkpoints,logs}
 
 # ── 5. Python dependencies ──────────────────────────────────
 echo ""
+echo "=== Setting up Python venv ==="
+sudo apt-get install -y -qq python3-venv python3-full
+if [ ! -d "$APP_DIR/venv" ]; then
+    python3 -m venv $APP_DIR/venv
+fi
+source $APP_DIR/venv/bin/activate
+
 echo "=== Installing Python dependencies ==="
-pip3 install -r requirements.txt --quiet
+pip install -r requirements.txt --quiet
 
 # ── 6. Frontend dependencies + build ────────────────────────
 echo ""
