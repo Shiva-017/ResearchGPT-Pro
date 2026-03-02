@@ -28,10 +28,12 @@ Thumbs.db
 
 # Data (large files — don't commit)
 backend/data/raw/*.json
+backend/data/pdfs/
 backend/data/processed/
 backend/data/checkpoints/
 backend/data/logs/
 !backend/data/raw/.gitkeep
+!backend/data/pdfs/.gitkeep
 !backend/data/processed/.gitkeep
 !backend/data/checkpoints/.gitkeep
 !backend/data/logs/.gitkeep

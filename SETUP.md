@@ -8,12 +8,14 @@ Step-by-step instructions to get ResearchGPT Pro running from scratch.
 
 - **Python 3.10+**
 - **Node.js 18+** and npm
+- **Docker Desktop** (for GROBID PDF parser)
 - **Git**
 
 You'll also need free accounts for:
 - [OpenAI](https://platform.openai.com/) — API key for embeddings + GPT-4o-mini
 - [Pinecone](https://www.pinecone.io/) — free tier, vector database
-- [Neo4j Aura](https://neo4j.com/cloud/aura-free/) — free tier, graph database
+- [Cohere](https://cohere.com/) — free tier, reranker API
+- [Neo4j Aura](https://neo4j.com/cloud/aura-free/) — free tier, graph database (optional, for graph features)
 
 ---
 
@@ -47,7 +49,10 @@ PINECONE_API_KEY=your-pinecone-api-key
 PINECONE_ENVIRONMENT=us-east-1-aws
 PINECONE_INDEX_NAME=research-papers
 
-# Neo4j Aura (required for graph features)
+# Cohere (required for reranking)
+COHERE_API_KEY=your-cohere-api-key
+
+# Neo4j Aura (optional — graph features disabled without it)
 NEO4J_URI=neo4j+s://xxxxxxxx.databases.neo4j.io
 NEO4J_USERNAME=neo4j
 NEO4J_PASSWORD=your-neo4j-password
@@ -55,74 +60,121 @@ NEO4J_PASSWORD=your-neo4j-password
 
 ### Getting the keys
 
-**OpenAI:** Go to https://platform.openai.com/api-keys → Create new secret key
-
-**Pinecone:** Go to https://app.pinecone.io → API Keys (left sidebar)
-
-**Neo4j Aura:**
-1. Go to https://neo4j.com/cloud/aura-free/
-2. Create a free instance
-3. **Save the password immediately** (shown only once)
-4. Copy the connection URI from the instance dashboard
+- **OpenAI:** https://platform.openai.com/api-keys → Create new secret key
+- **Pinecone:** https://app.pinecone.io → API Keys (left sidebar)
+- **Cohere:** https://dashboard.cohere.com/api-keys → Free tier, 1000 rerank calls/month
+- **Neo4j Aura:** https://neo4j.com/cloud/aura-free/ → Create instance, save the password (shown only once)
 
 ---
 
-## 3. Ingest Papers
+## 3. Start GROBID
 
-### Step 3a: Ingest into Pinecone (embeddings)
-
-```bash
-# Ingest 25,000 papers across all CS categories
-python backend/scripts/run_ingestion.py --preset cs-all --papers 625 --fresh
-
-# Or start smaller for testing
-python backend/scripts/run_ingestion.py --categories cs.AI --papers 100 --fresh
-```
-
-**Time:** ~4-6 hours for 25K papers (ArXiv rate limits are the bottleneck)
-**Cost:** ~$0.50 (OpenAI embeddings)
-
-If interrupted, resume without `--fresh`:
-```bash
-python backend/scripts/run_ingestion.py --preset cs-all --papers 625
-```
-
-Check progress anytime:
-```bash
-python backend/scripts/check_progress.py
-```
-
-### Step 3b: Ingest into Neo4j (citations + graph)
-
-After Pinecone ingestion completes:
+GROBID parses PDFs into structured sections. It runs as a Docker container:
 
 ```bash
-python backend/scripts/run_graph_ingestion.py
+# Start GROBID (runs in background)
+docker compose up -d
+
+# Wait ~30-60 seconds, then verify it's running:
+curl http://localhost:8070/api/isalive
+# Or open http://localhost:8070 in your browser
 ```
 
-This:
-1. Loads papers from cache (instant)
-2. Fetches citations from Semantic Scholar (~2-5 minutes via batch API)
-3. Creates nodes + edges in Neo4j (~5 minutes)
-4. Builds co-authorship graph (~2 minutes)
+**If `docker compose` fails**, run directly:
+```bash
+docker run --rm --init --ulimit core=0 -p 8070:8070 --memory=4g lfoppiano/grobid:0.8.2-crf
+```
 
-**Time:** ~10-15 minutes total
-**Cost:** Free (Semantic Scholar API is free)
+The `-crf` image is ~500MB, CPU-only, and fast enough for our use case.
 
 ---
 
-## 4. Start the Application
+## 4. Ingest Papers (Full-Text Pipeline)
 
-Open **two terminals:**
-
-### Terminal 1 — Backend API
+### Quick Start — 100 papers (test run, ~15 min)
 
 ```bash
-# From project root
+python -m backend.scripts.run_fulltext_ingestion --papers 100 --fresh
+```
+
+This downloads PDFs, parses with GROBID, chunks sections, embeds, and uploads to Pinecone.
+
+### Production — 1,000 papers (~90 min, ~$2-4)
+
+```bash
+python -m backend.scripts.run_fulltext_ingestion --papers 1000 --fresh
+```
+
+### Custom categories
+
+```bash
+python -m backend.scripts.run_fulltext_ingestion --papers 500 --categories cs.AI cs.CV cs.CL --fresh
+```
+
+### Resume after interruption
+
+PDFs and embeddings are cached. If interrupted, resume without `--fresh`:
+```bash
+python -m backend.scripts.run_fulltext_ingestion --papers 1000 --skip-download
+```
+
+### Expected output
+
+```
+FULL-TEXT INGESTION COMPLETE
+============================================================
+Papers processed: 1000 → 950 with PDF → 900 parsed
+Chunks total    : 13,000
+Chunks embedded : 13,000
+Avg chunks/paper: 14.4
+Embedding cost  : $2.50
+Pinecone vectors: 13,000
+```
+
+### What the pipeline does
+
+| Step | Action | Time |
+|---|---|---|
+| 1 | Load papers from ArXiv cache | instant |
+| 2 | Validate + deduplicate | instant |
+| 3 | Download PDFs (rate limited 1/3s) | ~50 min |
+| 4 | GROBID parse PDFs → structured sections | ~30 min |
+| 5 | Chunk sections (400-600 tokens, paragraph boundaries) | ~1 min |
+| 6 | Embed chunks (OpenAI text-embedding-3-small) | ~5 min |
+| 7 | Fit BM25 + upsert to Pinecone | ~3 min |
+
+### Pinecone free tier budget
+
+Free tier = 100K vectors. With ~15 chunks/paper:
+- 1,000 papers → ~15K vectors ✅
+- 3,000 papers → ~45K vectors ✅
+- 6,000 papers → ~90K vectors ⚠️ (near limit)
+
+---
+
+## 5. Ingest Citation Graph (Optional)
+
+If you have Neo4j configured:
+
+```bash
+python -m backend.scripts.run_graph_ingestion
+```
+
+This fetches citations from Semantic Scholar and builds the knowledge graph. Takes ~10-15 minutes, costs nothing.
+
+Without Neo4j, the system still works — you just won't get citation context, related papers, or author expertise in answers.
+
+---
+
+## 6. Start the Application
+
+### Terminal 1 — Backend
+
+```bash
 uvicorn backend.app.main:app --reload
 ```
 
-The API runs at http://localhost:8000. Swagger docs at http://localhost:8000/docs.
+API at http://localhost:8000. Swagger docs at http://localhost:8000/docs.
 
 ### Terminal 2 — Frontend
 
@@ -131,28 +183,40 @@ cd frontend
 npm run dev
 ```
 
-The frontend runs at http://localhost:3000.
+Frontend at http://localhost:3000.
+
+### Terminal 3 — GROBID (if not using docker compose)
+
+```bash
+docker run --rm --init --ulimit core=0 -p 8070:8070 --memory=4g lfoppiano/grobid:0.8.2-crf
+```
 
 ---
 
-## 5. Use It
+## 7. Test It
 
-### Chat Search
+### Queries that test full-text retrieval
 
-Go to http://localhost:3000 and ask a question:
-- "How do transformers handle long documents?"
-- "Compare federated learning approaches"
-- "What techniques reduce LLM inference cost?"
+These should return specific details from paper sections, not just abstract summaries:
 
-The system will: generate a HyDE abstract → embed → search Pinecone (hybrid) → rerank with cross-encoder → enrich with Neo4j graph → stream an AI answer with citations.
+```
+"what optimizer and learning rate were used for training in the binding shortcuts paper"
+"what image encoders were compared for visual training in VLM experiments"
+"which papers report results on the GLUE benchmark"
+```
+
+### Queries that test broad topic search
+
+```
+"How do transformers handle long documents?"
+"Compare federated learning approaches"
+"What techniques reduce LLM inference cost?"
+```
 
 ### Research GPS
 
-Go to http://localhost:3000/path (or click the "Research GPS" button on the landing page):
+Go to http://localhost:3000/path:
 - I know: "CNNs" → I want to learn: "GPU kernel optimization"
-- I know: "Logistic regression" → I want to learn: "Large language models"
-
-The system finds an optimal reading path between the two topics.
 
 ---
 
@@ -160,87 +224,44 @@ The system finds an optimal reading path between the two topics.
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/v1/search` | Search papers (non-streaming, full response) |
+| POST | `/api/v1/search` | Search papers (full response) |
 | POST | `/api/v1/chat` | Chat with streaming answer (SSE) |
-| POST | `/api/v1/research-path` | Find learning path between topics |
+| POST | `/api/v1/research-path` | Learning path between topics |
 | GET | `/api/v1/health` | Health check |
-
-### Example: Search
-
-```bash
-curl -X POST http://localhost:8000/api/v1/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "attention mechanisms", "top_k": 5}'
-```
-
-### Example: Research Path
-
-```bash
-curl -X POST "http://localhost:8000/api/v1/research-path?start_topic=CNNs&end_topic=GPU%20kernels&num_steps=4"
-```
-
----
-
-## Configuration Options
-
-### Ingestion Presets
-
-```bash
-# Core AI/ML only (6 categories)
-python backend/scripts/run_ingestion.py --preset cs-core --papers 1000
-
-# All CS (40 categories)
-python backend/scripts/run_ingestion.py --preset cs-all --papers 625
-
-# Everything including Math, Stats, Bio, Finance (75+ categories)
-python backend/scripts/run_ingestion.py --preset comprehensive --papers 300
-```
-
-### Search Filters (via API or UI)
-
-| Parameter | Default | Description |
-|---|---|---|
-| `top_k` | 5 | Number of papers to return |
-| `use_hyde` | true | Enable HyDE query expansion |
-| `use_rerank` | true | Enable cross-encoder reranking |
-| `alpha` | 0.7 | Dense vs sparse weight (1.0 = pure dense) |
-| `year_min` | null | Filter by minimum year |
-| `year_max` | null | Filter by maximum year |
 
 ---
 
 ## Troubleshooting
 
-### "No module named 'loguru'" (or any module)
+### GROBID won't start / docker errors
 
-Your pip and uvicorn might be using different Python versions. Fix:
 ```bash
-# Check which Python is running
-python --version
-
-# Install for the correct Python
-python -m pip install -r requirements.txt
-
-# Or use a specific version
-py -3.12 -m pip install -r requirements.txt
-py -3.12 -m uvicorn backend.app.main:app --reload
+# Restart Docker Desktop, then:
+docker pull lfoppiano/grobid:0.8.2-crf
+docker run --rm --init --ulimit core=0 -p 8070:8070 --memory=4g lfoppiano/grobid:0.8.2-crf
 ```
 
-### "Index configuration does not support sparse values"
+### GROBID crashes during parsing
 
-Your Pinecone index was created with `cosine` metric but hybrid search needs `dotproduct`. Delete the index in the Pinecone dashboard and re-run ingestion with `--fresh`.
+Large PDFs (>20MB) can exhaust GROBID's memory. The parser auto-skips these. If GROBID dies mid-run, restart it and re-run with `--skip-download`.
 
-### Pinecone or Neo4j connection errors
+### `<|endoftext|>` error during chunking
 
-Check your `.env` file. Make sure there are no extra spaces or quotes around the values.
+Some papers contain literal special tokens. Already fixed — `tiktoken` is called with `disallowed_special=()`.
 
-### ArXiv rate limiting during ingestion
+### Pinecone "index configuration does not support sparse values"
 
-Normal. The pipeline automatically handles rate limits with backoff. If it stops completely, wait 5 minutes and re-run (it resumes from checkpoint).
+Your index was created with `cosine` metric. Delete it in Pinecone dashboard and re-run with `--fresh` (it recreates with `dotproduct`).
 
-### First search is slow (~30 seconds)
+### Search returns only abstract-level answers
 
-The cross-encoder model downloads on first use (~100MB). Subsequent searches are fast (~1-2 seconds).
+Ensure you ran `run_fulltext_ingestion` (not `run_ingestion`). Check that `chunk_snippet` exists in your Pinecone vectors via the dashboard. If missing, re-run with `--fresh`.
+
+### Module not found errors
+
+```bash
+python -m pip install -r requirements.txt
+```
 
 ---
 
@@ -248,11 +269,11 @@ The cross-encoder model downloads on first use (~100MB). Subsequent searches are
 
 | Component | Cost |
 |---|---|
-| Pinecone | Free tier (2GB, unlimited reads) |
-| Neo4j Aura | Free tier (200K nodes, 400K relationships) |
-| OpenAI embeddings (25K papers) | ~$0.50 one-time |
+| Pinecone | Free tier (100K vectors) |
+| Neo4j Aura | Free tier (200K nodes) |
+| Cohere reranker | Free tier (1000 calls/month) |
+| GROBID | Free (Docker, runs locally) |
+| OpenAI embeddings (1K papers) | ~$2-4 one-time |
 | OpenAI GPT-4o-mini (per query) | ~$0.0003 |
-| Semantic Scholar API | Free |
-| Cross-encoder reranker | Free (runs locally) |
-| **Total for setup** | **~$0.50** |
+| **Total setup (1K papers)** | **~$2-4** |
 | **Per query** | **~$0.0003** |

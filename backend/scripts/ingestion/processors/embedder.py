@@ -1,20 +1,35 @@
 # backend/scripts/ingestion/processors/embedder.py
 
 """
-Fault-tolerant embedder with semantically enriched text construction.
+Production-grade embedder v2 — single enriched chunk per paper.
 
-Key improvements over v1:
-- Title is repeated to amplify the highest-signal field
-- Abstract filler phrases are stripped before embedding
-- Each paper is split into TWO chunks (problem vs method/results)
-  → 2 vectors per paper, stored with chunk_type metadata
-  → retrieval precision improves significantly for specific queries
-- Embeddings cached to disk; already-embedded papers are skipped
+Why v2?
+────────
+v1 split each abstract into problem/method halves. Research shows this
+hurts retrieval for short documents like abstracts (150-300 words):
+  - Heuristic 1/3 split is brittle and often breaks mid-thought
+  - Creates artificially tiny chunks (~50-150 tokens) that lose context
+  - 2x vectors in Pinecone = 2x cost, 2x noise for the reranker
+
+v2 strategy (backed by NVIDIA 2024 benchmark + Anthropic contextual retrieval):
+  - ONE enriched chunk per paper — full abstract stays coherent
+  - Structured metadata prefix — contextualizes the chunk for both
+    dense (semantic) and sparse (BM25) retrieval
+  - Automated keyword extraction — boosts exact-match BM25 queries
+  - Filler phrase removal — kept from v1 (proven effective)
+  - 50% fewer vectors, better coherence, lower embedding cost
+
+Chunk format:
+  [{field} | {year}] {title}
+  Authors: {top authors}
+  Keywords: {extracted keywords}
+  {cleaned abstract}
 """
 
 import re
+from collections import Counter
 from openai import OpenAI, APIError, RateLimitError, APIConnectionError
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Set
 from tqdm import tqdm
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -22,7 +37,7 @@ import time
 
 
 # ---------------------------------------------------------------------------
-# Filler phrases that pollute embedding space (appear in almost every paper)
+# Filler phrases that pollute embedding space
 # ---------------------------------------------------------------------------
 _FILLER_PHRASES = [
     "in this paper", "in this work", "in this study",
@@ -41,9 +56,49 @@ _FILLER_PHRASES = [
 
 _FILLER_RE = re.compile(
     r'\b(' + '|'.join(re.escape(p) for p in _FILLER_PHRASES) + r')\b',
-    flags=re.IGNORECASE
+    flags=re.IGNORECASE,
 )
 
+# Common stopwords to exclude from keyword extraction
+_STOPWORDS: Set[str] = {
+    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
+    "have", "has", "had", "do", "does", "did", "will", "would", "could",
+    "should", "may", "might", "shall", "can", "need", "dare", "ought",
+    "used", "to", "of", "in", "for", "on", "with", "at", "by", "from",
+    "as", "into", "through", "during", "before", "after", "above", "below",
+    "between", "out", "off", "over", "under", "again", "further", "then",
+    "once", "here", "there", "when", "where", "why", "how", "all", "both",
+    "each", "few", "more", "most", "other", "some", "such", "no", "nor",
+    "not", "only", "own", "same", "so", "than", "too", "very", "just",
+    "don", "now", "and", "but", "or", "if", "while", "that", "this",
+    "these", "those", "it", "its", "we", "our", "they", "their", "them",
+    "which", "what", "who", "whom", "also", "using", "based", "two",
+    "one", "first", "new", "show", "use", "approach", "method", "methods",
+    "results", "paper", "work", "model", "models", "data", "problem",
+    "proposed", "existing", "however", "can", "well", "many", "set",
+    "given", "different", "respectively", "across", "per", "via",
+}
+
+# Phrases that indicate methodology — boost these as keywords
+_METHOD_INDICATORS = {
+    "transformer", "attention", "convolution", "cnn", "rnn", "lstm", "gru",
+    "bert", "gpt", "diffusion", "gan", "vae", "reinforcement learning",
+    "contrastive learning", "self-supervised", "semi-supervised",
+    "federated", "graph neural", "knowledge graph", "knowledge distillation",
+    "fine-tuning", "pre-training", "zero-shot", "few-shot", "prompt",
+    "retrieval", "augmented", "generation", "embedding", "encoder",
+    "decoder", "segmentation", "detection", "classification", "regression",
+    "optimization", "gradient", "backpropagation", "normalization",
+    "regularization", "dropout", "pruning", "quantization", "distillation",
+    "meta-learning", "multi-task", "transfer learning", "domain adaptation",
+    "adversarial", "robustness", "fairness", "interpretability",
+    "explainability", "causal", "bayesian", "variational",
+}
+
+
+# ---------------------------------------------------------------------------
+# Text processing
+# ---------------------------------------------------------------------------
 
 def _clean_abstract(text: str) -> str:
     """Strip filler phrases and normalise whitespace."""
@@ -52,84 +107,129 @@ def _clean_abstract(text: str) -> str:
     return cleaned
 
 
-def _split_abstract(abstract: str) -> Tuple[str, str]:
+def _extract_keywords(title: str, abstract: str, top_k: int = 8) -> List[str]:
     """
-    Split abstract into (problem_part, method_result_part).
-    Heuristic: first ~1/3 of sentences = problem statement,
-               remaining = method + results.
-    Returns two non-empty strings.
+    Extract key terms from title + abstract using frequency analysis
+    plus domain-aware boosting.
+
+    Returns up to top_k keywords sorted by relevance.
     """
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', abstract) if s.strip()]
-    if len(sentences) <= 2:
-        # Too short to split meaningfully
-        return abstract, abstract
+    text = f"{title} {abstract}".lower()
 
-    split_idx = max(1, len(sentences) // 3)
-    problem_part = ' '.join(sentences[:split_idx])
-    method_part  = ' '.join(sentences[split_idx:])
-    return problem_part, method_part
+    # Check for multi-word method indicators first
+    found_methods = []
+    for method in _METHOD_INDICATORS:
+        if method in text:
+            found_methods.append(method)
 
+    # Tokenise into words, filter stopwords
+    words = re.findall(r'\b[a-z][a-z\-]{2,}\b', text)
+    words = [w for w in words if w not in _STOPWORDS and len(w) > 2]
+
+    # Count frequency
+    freq = Counter(words)
+
+    # Boost words that appear in the title (title words are high signal)
+    title_words = set(re.findall(r'\b[a-z][a-z\-]{2,}\b', title.lower()))
+    title_words -= _STOPWORDS
+    for tw in title_words:
+        if tw in freq:
+            freq[tw] *= 3
+
+    # Boost method indicators
+    for method in found_methods:
+        single_word = method.replace(" ", "-")
+        freq[single_word] = freq.get(single_word, 0) + 5
+
+    # Get top keywords, prefer multi-word methods first
+    keywords = []
+    for method in found_methods[:4]:
+        keywords.append(method)
+
+    for word, _ in freq.most_common(top_k * 2):
+        if word not in ' '.join(keywords) and len(keywords) < top_k:
+            keywords.append(word)
+
+    return keywords[:top_k]
+
+
+def _format_field(category: str) -> str:
+    """Convert arXiv category prefix to readable field name."""
+    prefix = category.split(".")[0] if "." in category else category
+    return {
+        "cs":      "Computer Science",
+        "math":    "Mathematics",
+        "physics": "Physics",
+        "stat":    "Statistics",
+        "eess":    "Electrical Engineering",
+        "q-bio":   "Quantitative Biology",
+        "q-fin":   "Quantitative Finance",
+        "econ":    "Economics",
+    }.get(prefix, "Other")
+
+
+# ---------------------------------------------------------------------------
+# Chunk builder — single enriched chunk per paper
+# ---------------------------------------------------------------------------
 
 def build_embedding_chunks(paper: Dict) -> List[Dict]:
     """
-    Build 1-2 enriched text chunks from a paper dict.
+    Build ONE enriched chunk from a paper dict.
 
-    Each chunk is a copy of the paper dict with two extra fields:
-      - chunk_id   : "{paper_id}_problem" or "{paper_id}_method"
-      - chunk_text : the string to embed
-      - chunk_type : "problem" | "method"
+    Returns a list with a single chunk dict containing:
+      - chunk_id   : "{paper_id}"  (no _problem/_method suffix)
+      - chunk_text : the enriched string to embed
+      - chunk_type : "full"
 
-    Why two chunks?
-      - Problem chunk → hits queries about what problem a paper solves
-      - Method chunk  → hits queries about how it was solved / what results
+    Chunk text format:
+      [{field} | {year}] {title}
+      Authors: {top 3 authors}
+      Keywords: {extracted keywords}
+      {cleaned abstract}
     """
     title    = paper.get('title', '').strip()
     abstract = paper.get('abstract', '').strip()
-    category = paper.get('primary_category', '')
+    categories = paper.get('categories', [])
+    primary_cat = categories[0] if categories else paper.get('primary_category', '')
     year     = str(paper.get('year', ''))
+    authors  = paper.get('authors', [])
 
+    # Clean the abstract
     clean_abs = _clean_abstract(abstract)
-    problem_part, method_part = _split_abstract(clean_abs)
+
+    # Extract keywords
+    keywords = _extract_keywords(title, clean_abs)
+
+    # Format the chunk
+    field = _format_field(primary_cat)
+    author_str = ", ".join(authors[:3])
+    if len(authors) > 3:
+        author_str += f" (+{len(authors) - 3} more)"
+    keyword_str = ", ".join(keywords) if keywords else ""
+
+    # Build enriched chunk text
+    parts = [
+        f"[{field} | {year}] {title}",
+    ]
+    if author_str:
+        parts.append(f"Authors: {author_str}")
+    if keyword_str:
+        parts.append(f"Keywords: {keyword_str}")
+    parts.append(clean_abs)
+
+    chunk_text = "\n".join(parts)
 
     base = {
         **paper,
-        # Remove raw embedding field if present — will be recomputed
         'embedding': None,
     }
 
-    chunks = []
-
-    # --- Chunk 1: Problem / motivation ---
-    chunks.append({
+    return [{
         **base,
-        'chunk_id':   f"{paper['id']}_problem",
-        'chunk_type': 'problem',
-        'chunk_text': (
-            f"Title: {title}\n"
-            f"Title: {title}\n"           # intentional repeat — boosts title weight
-            f"Field: {category}\n"
-            f"Year: {year}\n"
-            f"Problem: {problem_part}"
-        ),
-    })
-
-    # --- Chunk 2: Method + results ---
-    # Only add if method part is meaningfully different from problem part
-    if method_part != problem_part:
-        chunks.append({
-            **base,
-            'chunk_id':   f"{paper['id']}_method",
-            'chunk_type': 'method',
-            'chunk_text': (
-                f"Title: {title}\n"
-                f"Title: {title}\n"
-                f"Field: {category}\n"
-                f"Year: {year}\n"
-                f"Method and Results: {method_part}"
-            ),
-        })
-
-    return chunks
+        'chunk_id':   paper['id'],          # e.g. "arxiv:2504.12345"
+        'chunk_type': 'full',
+        'chunk_text': chunk_text,
+    }]
 
 
 # ---------------------------------------------------------------------------
@@ -165,13 +265,13 @@ class FaultTolerantEmbedder:
         """
         Expand papers → chunks, embed each chunk, return enriched list.
 
-        Returns a flat list of chunk dicts (may be 2x len(papers)).
+        Returns a flat list of chunk dicts (1 per paper in v2).
         Each chunk dict contains:
           - all original paper fields
           - chunk_id, chunk_type, chunk_text
           - embedding  (List[float], 1536-dim)
         """
-        # 1. Expand papers into chunks
+        # 1. Expand papers into chunks (1 per paper in v2)
         all_chunks: List[Dict] = []
         for paper in papers:
             all_chunks.extend(build_embedding_chunks(paper))
@@ -194,7 +294,6 @@ class FaultTolerantEmbedder:
             if emb:
                 chunk['embedding'] = emb
             else:
-                # Cache miss — re-queue (shouldn't happen normally)
                 logger.warning(f"Cache miss for {chunk['chunk_id']}, re-embedding")
                 newly_embedded.extend(self._embed_chunks([chunk], batch_size))
 

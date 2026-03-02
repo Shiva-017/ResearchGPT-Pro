@@ -23,6 +23,12 @@ httpx>=0.26.0                  # Semantic Scholar API
 openai>=1.6.1
 cohere>=5.0.0                  # Reranker API (replaces local cross-encoder)
 numpy>=1.24.0                  # Vector math for research paths
+tiktoken>=0.5.0                # Token counting for chunk sizing
+
+# PDF processing
+httpx>=0.26.0                  # PDF downloads (already listed above)
+beautifulsoup4>=4.12.0         # GROBID TEI XML parsing
+lxml>=4.9.0                    # XML parser backend for BeautifulSoup
 
 # Agent orchestration
 langgraph>=0.2.0

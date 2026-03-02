@@ -114,8 +114,11 @@ class PineconeClient:
             "pdf_url":          chunk.get("pdf_url", ""),
 
             # --- chunk fields ---
-            "chunk_type":       chunk.get("chunk_type", "full"),   # problem | method | full
+            "chunk_type":       chunk.get("chunk_type", "full"),
             "paper_id":         chunk.get("id", ""),               # original paper ID
+            "section_heading":  chunk.get("section_heading", "")[:200],
+            "is_fulltext":      chunk.get("is_fulltext", False),
+            "chunk_snippet":    chunk.get("chunk_text", "")[:800],  # actual chunk text for LLM context
 
             # --- filter fields ---
             "primary_category": categories[0] if categories else "unknown",

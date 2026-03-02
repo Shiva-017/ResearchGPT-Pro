@@ -22,7 +22,7 @@ class SearchRequest(BaseModel):
     year_min: Optional[int] = Field(default=None, description="Filter: minimum year")
     year_max: Optional[int] = Field(default=None, description="Filter: maximum year")
     categories: Optional[List[str]] = Field(default=None, description="Filter: arXiv categories")
-    chunk_type: Optional[str] = Field(default=None, description="Filter: 'problem' or 'method'")
+    chunk_type: Optional[str] = Field(default=None, description="Filter by chunk type (deprecated in v2)")
 
 
 # ── Response ─────────────────────────────────────────────────────────
@@ -30,9 +30,11 @@ class SearchRequest(BaseModel):
 class ChunkResult(BaseModel):
     """A single chunk hit from Pinecone."""
     chunk_id: str
-    chunk_type: str              # "problem" | "method"
+    chunk_type: str = "full"     # v2: "full" | legacy: "problem" | "method"
+    section_heading: str = ""    # e.g. "3.2 Multi-Head Attention"
     score: float                 # similarity score
     rerank_score: Optional[float] = None  # cross-encoder score (if reranked)
+    snippet: str = ""            # actual chunk text (for LLM context)
 
 
 class PaperResult(BaseModel):

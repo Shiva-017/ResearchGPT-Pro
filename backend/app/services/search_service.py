@@ -204,6 +204,14 @@ class SearchService:
         papers = self._group_chunks_to_papers(matches, top_k=request.top_k)
         timings["group_ms"] = (time.time() - t0) * 1000
 
+        # ── Stage 5b: Parent-child chunk expansion ───────────────────
+        # The initial search may only find the abstract chunk of a paper.
+        # This step fetches additional chunks from the same papers
+        # (methods, experiments, etc.) so the LLM sees actual detail.
+        t0 = time.time()
+        papers = self._expand_paper_chunks(papers, search_vector)
+        timings["expand_ms"] = (time.time() - t0) * 1000
+
         # ── Stage 6: Graph enrichment ────────────────────────────
         t0 = time.time()
         enrichment = self.rag.enrich(papers, request.query)
@@ -326,7 +334,8 @@ class SearchService:
             conditions.append({"year": {"$gte": request.year_min}})
         if request.year_max is not None:
             conditions.append({"year": {"$lte": request.year_max}})
-        if request.chunk_type:
+        # chunk_type filter deprecated in v2 (single enriched chunk)
+        if getattr(request, 'chunk_type', None):
             conditions.append({"chunk_type": {"$eq": request.chunk_type}})
         if request.categories:
             # Match if primary_category is in the list
@@ -357,13 +366,18 @@ class SearchService:
         co = _get_cohere_client()
 
         # Build document texts for Cohere
+        # Use chunk_snippet (fulltext section) if available, otherwise title+abstract
         docs = []
         for match in matches:
             meta = match.metadata if hasattr(match, "metadata") else {}
-            doc_text = (
-                f"{meta.get('title', '')}. "
-                f"{meta.get('abstract', '')}"
-            )
+            snippet = meta.get("chunk_snippet", "")
+            if snippet:
+                doc_text = snippet
+            else:
+                doc_text = (
+                    f"{meta.get('title', '')}. "
+                    f"{meta.get('abstract', '')}"
+                )
             docs.append(doc_text)
 
         try:
@@ -412,8 +426,10 @@ class SearchService:
             chunk = ChunkResult(
                 chunk_id=match.id,
                 chunk_type=meta.get("chunk_type", "unknown"),
+                section_heading=meta.get("section_heading", ""),
                 score=float(match.score) if hasattr(match, "score") else 0.0,
                 rerank_score=getattr(match, "_rerank_score", None),
+                snippet=meta.get("chunk_snippet", ""),
             )
 
             if paper_id not in paper_map:
@@ -450,6 +466,76 @@ class SearchService:
 
         # Convert to PaperResult models and trim to top_k
         return [PaperResult(**p) for p in sorted_papers[:top_k]]
+
+    # ------------------------------------------------------------------
+    # Stage 5b: Parent-child chunk expansion
+    # ------------------------------------------------------------------
+
+    def _expand_paper_chunks(
+        self,
+        papers: List[PaperResult],
+        search_vector: List[float],
+    ) -> List[PaperResult]:
+        """
+        For each top paper, fetch additional chunks from Pinecone
+        filtered by paper_id. This ensures the LLM sees methods,
+        experiments, and results — not just the abstract that
+        happened to match the initial query.
+
+        Uses the same search vector to rank which chunks from
+        each paper are most relevant to the query.
+        """
+        if not papers:
+            return papers
+
+        expanded = []
+        for paper in papers[:5]:  # only expand top 5 to keep latency low
+            existing_chunk_ids = {c.chunk_id for c in paper.matched_chunks}
+
+            # If we already have 3+ chunks, no need to expand
+            if len(paper.matched_chunks) >= 3:
+                expanded.append(paper)
+                continue
+
+            try:
+                # Query Pinecone filtered to this paper's chunks
+                results = self.pinecone.query(
+                    vector=search_vector,
+                    top_k=6,
+                    filter={"paper_id": {"$eq": paper.paper_id}},
+                    include_metadata=True,
+                )
+
+                new_chunks = []
+                for match in (results.matches if hasattr(results, "matches") else []):
+                    if match.id not in existing_chunk_ids:
+                        meta = match.metadata if hasattr(match, "metadata") else {}
+                        new_chunks.append(ChunkResult(
+                            chunk_id=match.id,
+                            chunk_type=meta.get("chunk_type", "unknown"),
+                            section_heading=meta.get("section_heading", ""),
+                            score=float(match.score) if hasattr(match, "score") else 0.0,
+                            snippet=meta.get("chunk_snippet", ""),
+                        ))
+
+                # Add the best new chunks (up to 3 total per paper)
+                slots = 3 - len(paper.matched_chunks)
+                if new_chunks and slots > 0:
+                    all_chunks = list(paper.matched_chunks) + new_chunks[:slots]
+                    paper = paper.model_copy(update={"matched_chunks": all_chunks})
+                    logger.debug(
+                        f"Expanded {paper.paper_id}: "
+                        f"{len(existing_chunk_ids)} → {len(all_chunks)} chunks"
+                    )
+
+            except Exception as e:
+                logger.warning(f"Chunk expansion failed for {paper.paper_id}: {e}")
+
+            expanded.append(paper)
+
+        # Add remaining papers (6+) without expansion
+        expanded.extend(papers[5:])
+        return expanded
 
     # ------------------------------------------------------------------
     # Chat with streaming
@@ -563,6 +649,9 @@ class SearchService:
 
         # Stage 5: Group
         papers = self._group_chunks_to_papers(matches, top_k=request.top_k)
+
+        # Stage 5b: Parent-child expansion
+        papers = self._expand_paper_chunks(papers, search_vector)
 
         # Stage 6: Graph enrichment (HybridRAG)
         t0 = time.time()

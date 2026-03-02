@@ -86,25 +86,25 @@ class IngestionPipeline:
             logger.info("=" * 60)
             papers = self.deduplicator.deduplicate(papers)
 
+            # ── Stage 5: Embed ──────────────────────────────────────────
+            # (Moved before BM25 so we can fit on enriched chunk texts)
+            logger.info("\n" + "=" * 60)
+            logger.info("STAGE 5: GENERATING EMBEDDINGS (chunks)")
+            logger.info("=" * 60)
+            chunks = self.embedder.embed_papers(papers)
+
             # ── Stage 4: Fit BM25 ───────────────────────────────────────
-            # Fit on title + abstract of the full corpus.
+            # Fit on the enriched chunk_text (includes title, keywords,
+            # authors, cleaned abstract) for better sparse matching.
             # Skipped if encoder already exists on disk.
             if self.pinecone.bm25 is None:
                 logger.info("\n" + "=" * 60)
                 logger.info("STAGE 4: FITTING BM25 ENCODER")
                 logger.info("=" * 60)
-                corpus = [
-                    f"{p['title']} {p['abstract']}" for p in papers
-                ]
+                corpus = [c['chunk_text'] for c in chunks if c.get('chunk_text')]
                 self.pinecone.fit_bm25(corpus)
             else:
                 logger.info("STAGE 4: BM25 encoder already fitted — skipping")
-
-            # ── Stage 5: Embed ──────────────────────────────────────────
-            logger.info("\n" + "=" * 60)
-            logger.info("STAGE 5: GENERATING EMBEDDINGS (chunks)")
-            logger.info("=" * 60)
-            chunks = self.embedder.embed_papers(papers)
 
             chunks_ok   = [c for c in chunks if c.get("embedding")]
             chunks_fail = [c for c in chunks if not c.get("embedding")]

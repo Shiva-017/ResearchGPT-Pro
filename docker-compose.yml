@@ -1,0 +1,17 @@
+# docker-compose.yml
+# Run: docker compose up -d
+
+services:
+  grobid:
+    image: lfoppiano/grobid:0.8.2-crf
+    ports:
+      - "8070:8070"
+    restart: unless-stopped
+    init: true
+    # ulimit to prevent core dumps
+    ulimits:
+      core: 0
+    deploy:
+      resources:
+        limits:
+          memory: 2G

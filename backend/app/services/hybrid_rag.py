@@ -151,15 +151,30 @@ class HybridRAG:
     # ------------------------------------------------------------------
 
     def _build_basic_context(self, papers: List[PaperResult]) -> str:
-        """Fallback: plain abstracts without graph enrichment."""
+        """Build context using actual matched chunk text, not just abstracts."""
         parts = []
         for i, paper in enumerate(papers[:5], 1):
-            abstract = paper.abstract[:400] + ("..." if len(paper.abstract) > 400 else "")
-            parts.append(
+            entry = (
                 f"[{i}] {paper.title} ({paper.year})\n"
-                f"    Authors: {paper.authors[:100]}\n"
-                f"    Abstract: {abstract}"
+                f"    Authors: {paper.authors[:100]}"
             )
+
+            # Use the actual matched chunk snippets — this is the whole
+            # point of fulltext indexing. The LLM sees methodology details,
+            # experimental results, etc. instead of just abstracts.
+            snippets_added = 0
+            for chunk in paper.matched_chunks:
+                if chunk.snippet and snippets_added < 3:
+                    heading = f" [{chunk.section_heading}]" if chunk.section_heading else ""
+                    entry += f"\n    Matched section{heading}: {chunk.snippet[:400]}"
+                    snippets_added += 1
+
+            # Fallback to abstract if no chunk snippets available
+            if snippets_added == 0:
+                abstract = paper.abstract[:400] + ("..." if len(paper.abstract) > 400 else "")
+                entry += f"\n    Abstract: {abstract}"
+
+            parts.append(entry)
         return "\n\n".join(parts)
 
     def _build_enriched_context(
@@ -179,12 +194,22 @@ class HybridRAG:
         # ── Retrieved papers with graph context ──────────────────────
         sections.append("=== RETRIEVED PAPERS ===")
         for i, paper in enumerate(papers[:5], 1):
-            abstract = paper.abstract[:350] + ("..." if len(paper.abstract) > 350 else "")
             entry = (
                 f"[{i}] {paper.title} ({paper.year})\n"
-                f"    Authors: {paper.authors[:100]}\n"
-                f"    Abstract: {abstract}"
+                f"    Authors: {paper.authors[:100]}"
             )
+
+            # Use actual matched chunk text for richer LLM context
+            snippets_added = 0
+            for chunk in paper.matched_chunks:
+                if chunk.snippet and snippets_added < 3:
+                    heading = f" [{chunk.section_heading}]" if chunk.section_heading else ""
+                    entry += f"\n    Matched section{heading}: {chunk.snippet[:350]}"
+                    snippets_added += 1
+
+            if snippets_added == 0:
+                abstract = paper.abstract[:350] + ("..." if len(paper.abstract) > 350 else "")
+                entry += f"\n    Abstract: {abstract}"
 
             # Add graph context if available
             ctx = paper_contexts.get(paper.paper_id)
