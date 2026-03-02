@@ -20,15 +20,10 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS — allow frontend (Next.js dev server) and local testing
+# CORS — allow all origins in production (behind Nginx)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://research-gpt-frontend.vercel.app",
-        "https://research-gpt-frontend-*.vercel.app",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +31,11 @@ app.add_middleware(
 
 # Routes
 app.include_router(search_router)
+
+
+@app.get("/api/v1/health")
+async def health():
+    return {"status": "ok", "service": "researchgpt-pro"}
 
 
 @app.on_event("startup")

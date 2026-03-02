@@ -1,0 +1,23 @@
+[Unit]
+Description=ResearchGPT Pro Frontend (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ResearchGPT-Pro/frontend
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+
+# Memory limit for t2.micro
+MemoryMax=300M
+
+# Logging
+StandardOutput=append:/home/ubuntu/ResearchGPT-Pro/backend/data/logs/frontend.log
+StandardError=append:/home/ubuntu/ResearchGPT-Pro/backend/data/logs/frontend.log
+
+[Install]
+WantedBy=multi-user.target

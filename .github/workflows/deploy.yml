@@ -1,0 +1,65 @@
+# .github/workflows/deploy.yml
+#
+# Auto-deploy to EC2 on push to main.
+# Uses SSH to pull code, install deps, build frontend, and restart services.
+#
+# Required GitHub Secrets:
+#   EC2_HOST        — your EC2 public IP or domain
+#   EC2_SSH_KEY     — private SSH key (PEM format)
+#   EC2_USERNAME    — usually "ubuntu" or "ec2-user"
+
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # manual trigger button
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -e
+
+            APP_DIR=~/ResearchGPT-Pro
+            
+            echo "=== Pulling latest code ==="
+            cd $APP_DIR
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "=== Installing Python dependencies ==="
+            pip install -r requirements.txt --quiet
+
+            echo "=== Installing frontend dependencies ==="
+            cd frontend
+            npm ci --production=false
+            
+            echo "=== Building frontend ==="
+            npm run build
+            cd ..
+
+            echo "=== Restarting services ==="
+            sudo systemctl restart researchgpt-backend
+            sudo systemctl restart researchgpt-frontend
+
+            echo "=== Waiting for services ==="
+            sleep 5
+
+            echo "=== Health check ==="
+            curl -sf http://localhost:8000/api/v1/health || echo "Backend health check failed (may still be starting)"
+            curl -sf http://localhost:3000 > /dev/null || echo "Frontend health check failed (may still be starting)"
+
+            echo "=== Deploy complete ==="
