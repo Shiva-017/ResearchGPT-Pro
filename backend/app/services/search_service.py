@@ -558,7 +558,7 @@ class SearchService:
         if not history:
             return message
 
-        # Build history text (last 4 turns)
+        # Build history text (last 4 turns for context window)
         history_lines = []
         for msg in history[-4:]:
             role = msg.role if hasattr(msg, "role") else msg.get("role", "")
