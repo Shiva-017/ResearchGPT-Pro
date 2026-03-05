@@ -38,3 +38,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-02] chore: clean up trailing whitespace in models
 - [2026-03-05] perf: only call get_author_expertise when papers found
 - [2026-03-05] perf: limit ancestor query depth to avoid slow traversal
+- [2026-03-05] fix: correct rerank score fallback when Cohere unavailable
