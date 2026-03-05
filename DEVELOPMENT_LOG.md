@@ -36,3 +36,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-02] docs: clarify chunk expansion slot calculation
 - [2026-03-02] fix: handle missing pdf_url without raising
 - [2026-03-02] chore: clean up trailing whitespace in models
+- [2026-03-05] perf: only call get_author_expertise when papers found
