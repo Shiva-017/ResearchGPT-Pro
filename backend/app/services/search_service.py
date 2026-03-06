@@ -632,7 +632,7 @@ class SearchService:
 
         # Stage 3: Pinecone
         t0 = time.time()
-        fetch_k = min(request.top_k * 4 if request.use_rerank else request.top_k * 2, 80)
+        fetch_k = min(request.top_k * 4 if request.use_rerank else request.top_k * 2, 100)
         pinecone_filter = self._build_filter(search_req)
         results = self.pinecone.query(
             vector=search_vector, top_k=fetch_k,
