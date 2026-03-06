@@ -41,3 +41,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-05] fix: correct rerank score fallback when Cohere unavailable
 - [2026-03-06] chore: remove unused import in search service
 - [2026-03-06] chore: sort import order in hybrid rag module
+- [2026-03-06] fix: prevent KeyError on missing metadata field
