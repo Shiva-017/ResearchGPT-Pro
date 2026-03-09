@@ -43,7 +43,7 @@ def check_ip_rate_limit(ip: str):
     if len(hour_reqs) >= IP_HOURLY_LIMIT:
         raise HTTPException(
             status_code=429,
-            detail=f"Rate limit exceeded: max {IP_HOURLY_LIMIT} requests/hour. Try again later."
+            detail=f"Rate limit exceeded: {IP_HOURLY_LIMIT} requests/hour maximum. Please try again later."
         )
 
     # Check daily
