@@ -42,3 +42,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-06] chore: remove unused import in search service
 - [2026-03-06] chore: sort import order in hybrid rag module
 - [2026-03-06] fix: prevent KeyError on missing metadata field
+- [2026-03-09] docs: comment why temperature 0.3 chosen for streaming
