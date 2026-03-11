@@ -50,7 +50,7 @@ def check_ip_rate_limit(ip: str):
     if len(_ip_requests[ip]) >= IP_DAILY_LIMIT:
         raise HTTPException(
             status_code=429,
-            detail=f"Daily limit exceeded: max {IP_DAILY_LIMIT} requests/day. Resets at midnight."
+            detail=f"Daily limit exceeded: {IP_DAILY_LIMIT} requests/day allowed. Quota resets at midnight UTC."
         )
 
     # Record this request
