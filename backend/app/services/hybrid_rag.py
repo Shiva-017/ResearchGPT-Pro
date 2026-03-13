@@ -77,7 +77,7 @@ class HybridRAG:
           - graph_insights:   structured graph data for frontend
           - timings:          performance metrics
         """
-        if not self.graph_available or not papers:
+        if not self.graph_available or not papers:  # fast path: skip graph calls
             return {
                 "context_str": self._build_basic_context(papers),
                 "graph_insights": {},
