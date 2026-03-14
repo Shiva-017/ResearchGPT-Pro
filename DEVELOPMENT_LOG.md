@@ -47,3 +47,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-09] fix: strip whitespace from API key header value
 - [2026-03-14] fix: handle empty query string before embed call
 - [2026-03-14] perf: reduce logging verbosity in hot search path
+- [2026-03-14] perf: precompute paper_ids list once before loop
