@@ -46,3 +46,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-09] docs: document search filter logic
 - [2026-03-09] fix: strip whitespace from API key header value
 - [2026-03-14] fix: handle empty query string before embed call
+- [2026-03-14] perf: reduce logging verbosity in hot search path
