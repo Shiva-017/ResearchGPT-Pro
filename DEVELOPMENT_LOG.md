@@ -49,3 +49,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-14] perf: reduce logging verbosity in hot search path
 - [2026-03-14] perf: precompute paper_ids list once before loop
 - [2026-03-15] fix: handle Cohere API timeout with retry fallback
+- [2026-03-15] refactor: move answer system prompt to module top
