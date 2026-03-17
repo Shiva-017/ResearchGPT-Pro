@@ -53,3 +53,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-15] fix: handle unicode in paper titles during context build
 - [2026-03-15] chore: minor cleanup in pinecone client wrapper
 - [2026-03-15] refactor: split large enrich method into helpers
+- [2026-03-17] refactor: inline unnecessary intermediate variable
