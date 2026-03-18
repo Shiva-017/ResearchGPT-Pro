@@ -519,7 +519,7 @@ class SearchService:
                         ))
 
                 # Add the best new chunks (up to 3 total per paper)
-                slots = 3 - len(paper.matched_chunks)
+                slots = max(0, 3 - len(paper.matched_chunks))
                 if new_chunks and slots > 0:
                     all_chunks = list(paper.matched_chunks) + new_chunks[:slots]
                     paper = paper.model_copy(update={"matched_chunks": all_chunks})
