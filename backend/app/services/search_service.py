@@ -679,7 +679,7 @@ class SearchService:
             {"role": "system", "content": _CHAT_SYSTEM},
         ]
 
-        # Add conversation history (last 6 turns max)
+        # Append conversation history (last 6 turns to limit context size)
         for msg in history[-6:]:
             messages.append({"role": msg.role, "content": msg.content})
 
