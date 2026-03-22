@@ -58,3 +58,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-20] fix: ensure timings dict always has total_ms key
 - [2026-03-20] chore: update dev log entry
 - [2026-03-20] fix: handle missing year field in paper metadata
+- [2026-03-22] refactor: consolidate early-return conditions
