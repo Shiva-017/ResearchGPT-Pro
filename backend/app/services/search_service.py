@@ -694,7 +694,7 @@ class SearchService:
                 model="gpt-4o-mini",
                 messages=messages,
                 max_tokens=600,
-                temperature=0.4,
+                temperature=0.3,
                 stream=True,
             )
             for chunk in stream:
