@@ -77,7 +77,7 @@ def check_global_limit():
     if _global_count >= GLOBAL_DAILY_LIMIT:
         raise HTTPException(
             status_code=429,
-            detail="Service temporarily unavailable: daily query limit reached. Try again tomorrow."
+            detail="Service temporarily unavailable: daily query budget exhausted. Resets tomorrow."
         )
 
     _global_count += 1
