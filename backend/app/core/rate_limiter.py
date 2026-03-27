@@ -94,7 +94,7 @@ def check_api_key(request: Request):
     if key not in settings.api_keys_set:
         raise HTTPException(
             status_code=401,
-            detail="Invalid or missing API key. Include X-API-Key header."
+            detail="Unauthorized: invalid or missing API key. Pass it via X-API-Key header."
         )
 
 
