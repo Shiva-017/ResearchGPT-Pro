@@ -60,3 +60,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-20] fix: handle missing year field in paper metadata
 - [2026-03-22] refactor: consolidate early-return conditions
 - [2026-03-23] fix: log warning when citation graph returns no results
+- [2026-03-27] refactor: deduplicate paper ID logic in group step
