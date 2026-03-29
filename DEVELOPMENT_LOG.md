@@ -64,3 +64,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-27] chore: consistent quote style in config module
 - [2026-03-27] docs: update HyDE system prompt comments
 - [2026-03-29] perf: use set for existing chunk ID lookup
+- [2026-03-29] chore: clean up leftover test fixture
