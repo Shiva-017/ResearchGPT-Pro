@@ -594,7 +594,7 @@ class SearchService:
         timings = {}
         t_start = time.time()
 
-        # Stage 0: Rewrite follow-up query using conversation context
+        # Stage 0: Rewrite follow-up question into a standalone search query
         search_query = request.message
         if request.history:
             t0 = time.time()
