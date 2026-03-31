@@ -67,3 +67,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-29] chore: clean up leftover test fixture
 - [2026-03-31] docs: add comment explaining HyDE vector blending
 - [2026-03-31] refactor: extract score comparison into helper
+- [2026-03-31] chore: remove debug print left from testing
