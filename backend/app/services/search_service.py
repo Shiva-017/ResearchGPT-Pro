@@ -579,7 +579,7 @@ class SearchService:
                 temperature=0.0,
             )
             rewritten = response.choices[0].message.content.strip()
-            logger.info(f"Query rewrite: '{message}' → '{rewritten}'")
+            logger.debug(f"Query rewrite: '{message}' → '{rewritten}'")
             return rewritten
         except Exception as e:
             logger.warning(f"Query rewrite failed: {e}")
