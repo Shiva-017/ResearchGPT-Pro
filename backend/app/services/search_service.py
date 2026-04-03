@@ -601,7 +601,7 @@ class SearchService:
             search_query = self._rewrite_query(request.message, request.history)
             timings["rewrite_ms"] = (time.time() - t0) * 1000
 
-        # Reuse the search pipeline
+        # Reuse the core search pipeline for chat retrieval
         search_req = SearchRequest(
             query=search_query,
             top_k=request.top_k,
