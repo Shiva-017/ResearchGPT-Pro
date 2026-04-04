@@ -70,3 +70,4 @@ Tracking incremental improvements and fixes.
 - [2026-03-31] chore: remove debug print left from testing
 - [2026-04-03] docs: clarify HyDE pipeline comment
 - [2026-04-04] docs: note why fetch_k ceiling raised to 100
+- [2026-04-04] fix: return empty list instead of None on graph error
