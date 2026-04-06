@@ -43,7 +43,7 @@ class HybridRAG:
     def _connect(self):
         """Try to connect to Neo4j. If unavailable, graph features are disabled."""
         if not settings.neo4j_uri:
-            logger.warning("Neo4j URI not set — graph features disabled")
+            logger.info("Neo4j URI not configured — graph features skipped")
             return
         try:
             self.neo4j = Neo4jClient(
