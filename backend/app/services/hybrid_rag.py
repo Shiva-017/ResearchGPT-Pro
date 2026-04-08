@@ -102,7 +102,7 @@ class HybridRAG:
         # ── 2. Graph expansion (related papers Pinecone missed) ──────
         t0 = time.time()
         try:
-            connected = self.neo4j.get_connected_papers(paper_ids, max_extra=6)
+            connected = self.neo4j.get_connected_papers(paper_ids, max_extra=5)
         except Exception:
             connected = []
         timings["graph_expand_ms"] = (time.time() - t0) * 1000
