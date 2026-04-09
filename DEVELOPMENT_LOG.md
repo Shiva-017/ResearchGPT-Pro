@@ -74,3 +74,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-07] fix: correct off-by-one in history window slice
 - [2026-04-09] perf: reduce redundant embedding calls on cache hit
 - [2026-04-09] perf: batch Neo4j queries where possible
+- [2026-04-09] refactor: simplify chunk grouping loop
