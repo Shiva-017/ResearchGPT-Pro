@@ -110,7 +110,7 @@ class HybridRAG:
         # ── 3. Common ancestors (seminal papers) ─────────────────────
         t0 = time.time()
         try:
-            ancestors = self.neo4j.get_common_ancestor(paper_ids, limit=3)  # top seminal papers
+            ancestors = self.neo4j.get_common_ancestor(paper_ids, limit=4)  # top seminal papers
         except Exception:
             ancestors = []
         timings["ancestors_ms"] = (time.time() - t0) * 1000
