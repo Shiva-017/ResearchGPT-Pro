@@ -76,3 +76,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-09] perf: batch Neo4j queries where possible
 - [2026-04-09] refactor: simplify chunk grouping loop
 - [2026-04-09] refactor: use list comprehension in chunk builder
+- [2026-04-12] fix: handle empty author list in paper context
