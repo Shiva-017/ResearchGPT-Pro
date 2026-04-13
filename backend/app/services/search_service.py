@@ -261,7 +261,7 @@ class SearchService:
                     {"role": "system", "content": _HYDE_SYSTEM},
                     {"role": "user", "content": _HYDE_USER.format(query=query)},
                 ],
-                max_tokens=200,  # short abstract only
+                max_tokens=200,  # HyDE abstract is short by design
                 temperature=0.7,  # slight variation for diversity
             )
             abstract = response.choices[0].message.content.strip()
