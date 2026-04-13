@@ -79,3 +79,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-12] fix: handle empty author list in paper context
 - [2026-04-12] fix: convert year to int before filter comparison
 - [2026-04-12] fix: validate year range before building filter
+- [2026-04-13] docs: note that ancestors are ordered by citation count
