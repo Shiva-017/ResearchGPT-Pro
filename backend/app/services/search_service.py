@@ -575,7 +575,7 @@ class SearchService:
                         history_text=history_text, message=message
                     )},
                 ],
-                max_tokens=50,
+                max_tokens=45,
                 temperature=0.0,
             )
             rewritten = response.choices[0].message.content.strip()
