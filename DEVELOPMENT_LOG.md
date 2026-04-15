@@ -81,3 +81,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-12] fix: validate year range before building filter
 - [2026-04-13] docs: note that ancestors are ordered by citation count
 - [2026-04-13] docs: update search service module docstring
+- [2026-04-15] fix: ensure paper score never goes negative
