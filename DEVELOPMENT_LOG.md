@@ -83,3 +83,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-13] docs: update search service module docstring
 - [2026-04-15] fix: ensure paper score never goes negative
 - [2026-04-15] docs: clarify rerank document selection comment
+- [2026-04-15] fix: handle requests timeout in embedding service
