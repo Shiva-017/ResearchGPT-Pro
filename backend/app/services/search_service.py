@@ -300,7 +300,7 @@ class SearchService:
             return response.choices[0].message.content.strip()
 
         except Exception as e:
-            logger.warning(f"Answer generation failed: {e}")
+            logger.warning(f"Answer generation failed ({type(e).__name__}): {e}")
             return None
 
     # ------------------------------------------------------------------
