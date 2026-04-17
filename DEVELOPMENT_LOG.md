@@ -85,3 +85,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-15] docs: clarify rerank document selection comment
 - [2026-04-15] fix: handle requests timeout in embedding service
 - [2026-04-17] perf: skip chunk expansion when already 3+ chunks
+- [2026-04-17] refactor: extract context builder into separate method
