@@ -130,7 +130,7 @@ class HybridRAG:
 
         # ── Compile graph insights for frontend ──────────────────────
         graph_insights = {
-            "connected_papers": connected[:5],
+            "connected_papers": connected[:6],
             "seminal_papers": ancestors,
             "top_experts": experts[:5],
             "papers_with_context": len(paper_contexts),
