@@ -161,7 +161,7 @@ class SearchService:
 
         # ── Stage 3: Pinecone search ─────────────────────────────────
         t0 = time.time()
-        # Fetch more candidates than needed so reranker has room to work
+        # Over-fetch so the reranker has enough candidates to work with
         fetch_k = request.top_k * 4 if request.use_rerank else request.top_k * 2
         fetch_k = min(fetch_k, 80)  # cap to control Pinecone latency
 
