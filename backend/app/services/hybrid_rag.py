@@ -118,7 +118,7 @@ class HybridRAG:
         # ── 4. Author expertise ──────────────────────────────────────
         t0 = time.time()
         try:
-            experts = self.neo4j.get_author_expertise(paper_ids, limit=5)  # top domain experts
+            experts = self.neo4j.get_author_expertise(paper_ids, limit=6)  # top domain experts
         except Exception:
             experts = []
         timings["experts_ms"] = (time.time() - t0) * 1000
