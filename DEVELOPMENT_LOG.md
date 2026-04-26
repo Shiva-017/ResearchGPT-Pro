@@ -91,3 +91,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-23] refactor: extract rewrite prompt constants to top
 - [2026-04-23] fix: cap connected paper results to avoid memory spike
 - [2026-04-23] chore: align indentation in search pipeline
+- [2026-04-26] fix: guard against None abstract in paper context
