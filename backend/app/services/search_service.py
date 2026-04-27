@@ -366,7 +366,7 @@ class SearchService:
         co = _get_cohere_client()
 
         # Build document texts for Cohere
-        # Use chunk_snippet (fulltext section) if available, otherwise title+abstract
+        # Prefer chunk_snippet (fulltext) over title+abstract for richer reranking signal
         docs = []
         for match in matches:
             meta = match.metadata if hasattr(match, "metadata") else {}
