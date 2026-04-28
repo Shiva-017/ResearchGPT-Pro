@@ -94,3 +94,4 @@ Tracking incremental improvements and fixes.
 - [2026-04-26] fix: guard against None abstract in paper context
 - [2026-04-26] refactor: extract query validation into helper
 - [2026-04-26] chore: remove stale TODO comment
+- [2026-04-28] fix: default category filter to None not empty list
