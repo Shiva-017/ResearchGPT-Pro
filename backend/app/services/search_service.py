@@ -489,7 +489,7 @@ class SearchService:
             return papers
 
         expanded = []
-        for paper in papers[:5]:  # only expand top 5 to keep latency low
+        for paper in papers[:5]:  # limit expansion to top 5 to bound latency
             existing_chunk_ids = {c.chunk_id for c in paper.matched_chunks}
 
             # If we already have 3+ chunks, no need to expand
