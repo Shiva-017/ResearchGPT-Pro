@@ -51,7 +51,7 @@ class HybridRAG:
                 username=settings.neo4j_username,
                 password=settings.neo4j_password,
             )
-            logger.info("HybridRAG: Neo4j ready")
+            logger.info("HybridRAG: connected to Neo4j")
         except Exception as e:
             logger.warning(f"Neo4j connection failed: {e} — graph features disabled")
             self.neo4j = None
