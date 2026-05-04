@@ -104,3 +104,4 @@ Tracking incremental improvements and fixes.
 - [2026-05-03] fix: skip expansion for papers already fully chunked
 - [2026-05-04] chore: minor formatting in rate limiter module
 - [2026-05-04] chore: normalize log message formatting
+- [2026-05-04] fix: ensure graph_insights always returns dict
