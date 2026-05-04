@@ -102,3 +102,4 @@ Tracking incremental improvements and fixes.
 - [2026-05-03] docs: add inline comments to hybrid search stages
 - [2026-05-03] refactor: rename internal var for clarity in reranker
 - [2026-05-03] fix: skip expansion for papers already fully chunked
+- [2026-05-04] chore: minor formatting in rate limiter module
