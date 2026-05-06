@@ -107,3 +107,4 @@ Tracking incremental improvements and fixes.
 - [2026-05-04] fix: ensure graph_insights always returns dict
 - [2026-05-05] refactor: consolidate duplicate Pinecone filter logic
 - [2026-05-06] docs: explain alpha weighting in hybrid search
+- [2026-05-06] docs: add step numbers to chat pipeline comments
