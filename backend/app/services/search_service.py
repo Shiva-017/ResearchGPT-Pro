@@ -143,7 +143,7 @@ class SearchService:
             t0 = time.time()
             hyde_abstract = self._generate_hyde(request.query)
             timings["hyde_ms"] = (time.time() - t0) * 1000
-            logger.info(f"HyDE generated ({timings['hyde_ms']:.0f}ms)")
+            logger.debug(f"HyDE generated ({timings['hyde_ms']:.0f}ms)")
 
         # ── Stage 2: Embed ───────────────────────────────────────────
         t0 = time.time()
