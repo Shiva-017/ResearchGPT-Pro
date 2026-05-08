@@ -197,7 +197,7 @@ class SearchService:
             t0 = time.time()
             matches = self._rerank(request.query, matches)
             timings["rerank_ms"] = (time.time() - t0) * 1000
-            logger.info(f"Reranked {len(matches)} chunks ({timings['rerank_ms']:.0f}ms)")
+            logger.debug(f"Reranked {len(matches)} chunks ({timings['rerank_ms']:.0f}ms)")
 
         # ── Stage 5: Group chunks → papers ───────────────────────────
         t0 = time.time()
