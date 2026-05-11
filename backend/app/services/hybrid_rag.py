@@ -132,7 +132,7 @@ class HybridRAG:
         graph_insights = {
             "connected_papers": connected[:6],
             "seminal_papers": ancestors,
-            "top_experts": experts[:5],
+            "top_experts": experts[:6],
             "papers_with_context": len(paper_contexts),
         }
 
