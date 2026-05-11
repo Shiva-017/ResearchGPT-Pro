@@ -110,3 +110,4 @@ Tracking incremental improvements and fixes.
 - [2026-05-06] docs: add step numbers to chat pipeline comments
 - [2026-05-06] fix: handle empty Pinecone result set gracefully
 - [2026-05-11] fix: handle Neo4j timeout without crashing request
+- [2026-05-11] refactor: replace magic string with named constant
